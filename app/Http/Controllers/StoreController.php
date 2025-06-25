@@ -2,68 +2,129 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\store;
+use App\Models\Store; // استخدام الموديل بالحرف الكبير
+use App\Http\Requests\StoreRequest; // استيراد الـ Form Request الجديد
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class StoreController extends Controller
 {
-    
-    
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
     public function index()
     {
-        return response()->json(store::all());
+        // استخدام paginate بدلاً من all لتحسين الأداء
+        $stores = Store::latest()->paginate(10); // عرض 10 متاجر في الصفحة، مع ترتيبها من الأحدث للأقدم
+        return view('store.index', compact('stores'));
     }
 
-    // إدخال متجر جديد
-    public function store(Request $request)
+    /**
+     * Show the form for creating a new resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function create()
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'location' => 'nullable|string|max:255',
-            'owner' => 'nullable|string|max:255',
-            'mobile' => 'nullable|string|max:255',
-            'status' => 'boolean',
-        ]);
-
-        $store = store::create($request->all());
-
-        return response()->json([
-            'message' => 'Shop created successfully',
-            'data' => $store,
-        ], 201);
+        // هذه الدالة تعرض الفورم
+        return view('store.create');
     }
 
-    // تعديل متجر موجود
-    public function update(Request $request, $id)
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \App\Http\Requests\StoreRequest  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function store(StoreRequest $request)
     {
-        $store = store::findOrFail($id);
+        // التحقق من الصحة يتم تلقائياً بواسطة StoreRequest
+        $validatedData = $request->validated();
 
-        $request->validate([
-    'store_name' => 'required|string|max:50|unique:stores,store_name',
-    'store_logo' => 'nullable|string|max:50',
-    'brunch_location' => 'required|string|max:70',
-    'store_address' => 'required|string|max:70',
-    'store_phone' => ['required', 'string', 'max:15', 'regex:/^[0-9+\-\s]+$/'],
-    'e_mail' => 'required|email|max:50',
-    'owner_name' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z\s]+$/'],
-        ]);
+        if ($request->hasFile('store_logo')) {
+            // تخزين الشعار المرفوع والحصول على مساره
+            $path = $request->file('store_logo')->store('store_logos','public');
+            $validatedData['store_logo'] = $path;
+        }
 
-        $store->update($request->all());
+        Store::create($validatedData);
 
-        return response()->json([
-            'message' => 'Shop updated successfully',
-            'data' => $store,
-        ]);
+        // إعادة التوجيه إلى صفحة العرض مع رسالة نجاح
+        return redirect()->route('stores.index')
+                         ->with('success', 'تم إنشاء المتجر بنجاح.');
     }
 
-    // حذف متجر
-    public function destroy($id)
+    /**
+     * Display the specified resource.
+     *
+     * @param  \App\Models\Store  $store
+     * @return \Illuminate\Http\Response
+     */
+    public function show(Store $store)
     {
-        $store = store::findOrFail($id);
+        // هذه الدالة لعرض تفاصيل متجر واحد
+        // تستخدم Route Model Binding تلقائياً
+        return view('store.show', compact('store'));
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     *
+     * @param  \App\Models\Store  $store
+     * @return \Illuminate\Http\Response
+     */
+    public function edit(Store $store)
+    {
+        // عرض فورم التعديل مع بيانات المتجر
+        return view('store.edit', compact('store'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \App\Http\Requests\StoreRequest  $request
+     * @param  \App\Models\Store  $store
+     * @return \Illuminate\Http\Response
+     */
+    public function update(StoreRequest $request, Store $store)
+    {
+        // التحقق من الصحة يتم تلقائياً بواسطة StoreRequest
+        $validatedData = $request->validated();
+
+        if ($request->hasFile('store_logo')) {
+            // حذف الشعار القديم إذا كان موجوداً
+            if ($store->store_logo) {
+                Storage::delete($store->store_logo);
+            }
+            // تخزين الشعار الجديد
+            $path = $request->file('store_logo')->store('store_logos','public');
+            $validatedData['store_logo'] = $path;
+        }
+
+        $store->update($validatedData);
+
+        return redirect()->route('stores.index')
+                         ->with('success', 'تم تعديل المتجر بنجاح.');
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  \App\Models\Store  $store
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy(Store $store)
+    {
+        // حذف الشعار المرتبط بالمتجر من مجلد التخزين
+        if ($store->store_logo) {
+            Storage::delete($store->store_logo);
+        }
+        
         $store->delete();
 
-        return response()->json([
-            'message' => 'Shop deleted successfully',
-        ]);
+        return redirect()->route('stores.index')
+                         ->with('success', 'تم حذف المتجر بنجاح.');
     }
 }

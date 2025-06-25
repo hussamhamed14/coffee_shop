@@ -1,18 +1,18 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ShopsController;
+use App\Http\Controllers\StoreController;
+
+
+Route::get('/', [StoreController::class, 'index']);
 
 Route::get('/admin', function () {
     return view('admin.panel');
-});
+})->name('admin.panel');
 
 
-Route::get('shop',[ShopsController::class,'index']);
-Route::post('shop', [ShopsController::class, 'store'])->name('shop');;
-Route::get('shop/{id}', [ShopsController::class, 'show']);
-Route::put('shop/{id}', [ShopsController::class, 'update']);
-Route::delete('shop/{id}', [ShopsController::class, 'destroy']);
-Route::get('/sh', function () {
-    return view('create_store');
-});
+
+Route::resource('stores', StoreController::class);
+
+
+
