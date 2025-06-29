@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 class Store extends Model
 {
     use HasFactory;
-    
+ 
     /**
      * The attributes that are mass assignable.
      *
@@ -24,7 +24,6 @@ class Store extends Model
         'owner_name',
         'status',
     ];
-
     /**
      * The attributes that should be cast.
      *
