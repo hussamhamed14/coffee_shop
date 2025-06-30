@@ -80,5 +80,4 @@ jobs:
           server-dir: /public_html/
           dangerous-clean-slate: false
           exclude: |
-           **/vendor/**
            **/node_modules/**
